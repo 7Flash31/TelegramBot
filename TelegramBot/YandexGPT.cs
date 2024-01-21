@@ -1,12 +1,10 @@
-﻿using System;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
+﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 using System.Text.Json;
 using Newtonsoft.Json;
-class GPTBot
+
+class YandexGPT
 {
     public static async Task<string> SendCompletionRequest(string question)
     {
@@ -50,49 +48,11 @@ class GPTBot
             }
             else
             {
-                return $"Error: {response.StatusCode}";
+                if(response.StatusCode.ToString() == "TooManyRequests")
+                    return "Подождите";
+                else
+                    return $"Error: {response.StatusCode}";
             }
         }
     }
 }
-
-class Result
-{
-    [JsonPropertyName("alternatives")]
-    public Alternatives Alternatives { get; set; } = new();
-
-    [JsonPropertyName("usage")]
-    public Usage Usage { get; set; } = new();
-
-}
-
-class Alternatives
-{
-    [JsonPropertyName("message")]
-    public Message Message { get; set; } = new();
-
-    [JsonPropertyName("status")]
-    public string Status { get; set; } = "";
-}
-
-class Usage
-{
-    [JsonPropertyName("inputTextTokens")]
-    public string InputTextTokens { get; set; } = "";
-
-    [JsonPropertyName("completionTokens")]
-    public string CompletionTokens { get; set; } = "";
-
-    [JsonPropertyName("totalTokens")]
-    public string TotalTokens { get; set; } = "";
-}
-
-class Message
-{
-    [JsonPropertyName("role")]
-    public string Role { get; set; }
-
-    [JsonPropertyName("text")]
-    public string Text { get; set; }
-}
-
