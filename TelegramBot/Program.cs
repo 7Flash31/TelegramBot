@@ -1,6 +1,8 @@
-﻿using System.Text;
+﻿using System.Reflection;
+using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using static System.Net.Mime.MediaTypeNames;
 
 internal class Program
 {
@@ -36,10 +38,12 @@ internal class Program
             {
                 if(ProcessCommand(message.Text, true) == "Нарисуй")
                 {
-                    SendMessage(Member.Bot, botClient, update, "Рисую");
+                    SendMessage(MessageType.Bot, botClient, update, "Рисую");
 
                     string promt = ProcessCommand(message.Text, false);
                     await Kandinsky.GetGenerateImage(promt);
+
+                    WriteLog($"Image ({promt}) saved to {Kandinsky.GetFilePath()}");
 
                     using(var fileStream = new FileStream(Kandinsky.GetFilePath(), FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
@@ -55,7 +59,7 @@ internal class Program
                 }
 
                 else
-                    SendMessage(Member.Gpt, botClient, update, message.Text);
+                    SendMessage(MessageType.Gpt, botClient, update, message.Text);
             }
 
             else
@@ -71,6 +75,12 @@ internal class Program
     private static Task Error(ITelegramBotClient client, Exception exception, CancellationToken token)
     {
         Console.WriteLine($"Telegram: {exception.Message}");
+        WriteLog($"Telegram: {exception.Message}");
+
+        var fileName = Assembly.GetExecutingAssembly().Location;
+        System.Diagnostics.Process.Start(fileName);
+        Environment.Exit(0); 
+
         return Task.CompletedTask;
     }
 

@@ -109,7 +109,6 @@ class Kandinsky
             fileIndex++;
             filePath = $"C:\\Users\\arter\\Desktop\\telegram-bot\\Image\\{fileIndex}.png";
             File.WriteAllBytes(filePath, imageBytes);
-            Program.WriteLog($"Image ({promt}) saved to {filePath}");
             Console.WriteLine($"Image ({promt}) saved to {filePath}");
         }
     }
