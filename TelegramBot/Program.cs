@@ -59,30 +59,30 @@ internal class Program
 
             if (isSub.Status.ToString().Length >= 5)
             {
-                if(ProcessCommand(message.Text, true) == "Нарисуй")
-                {
-                    SendMessage(MessageType.Bot, botClient, update, "Рисую");
+                //if(ProcessCommand(message.Text, true) == "Нарисуй")
+                //{
+                //    SendMessage(MessageType.Bot, botClient, update, "Рисую");
 
-                    string promt = ProcessCommand(message.Text, false);
+                //    string promt = ProcessCommand(message.Text, false);
 
-                    await Kandinsky.GetGenerateImage(promt);
+                //    await Kandinsky.GetGenerateImage(promt);
 
-                    WriteLog($"Image ({promt}) saved to {Kandinsky.GetFilePath()}");
+                //    WriteLog($"Image ({promt}) saved to {Kandinsky.GetFilePath()}");
 
-                    using(var fileStream = new FileStream(Kandinsky.GetFilePath(), FileMode.Open, FileAccess.Read, FileShare.Read))
-                    {
-                        await botClient.SendPhotoAsync(
-                            chatId: message.Chat.Id,
-                            photo: InputFile.FromStream(fileStream),
-                            caption: promt
-                        );
+                //    using(var fileStream = new FileStream(Kandinsky.GetFilePath(), FileMode.Open, FileAccess.Read, FileShare.Read))
+                //    {
+                //        await botClient.SendPhotoAsync(
+                //            chatId: message.Chat.Id,
+                //            photo: InputFile.FromStream(fileStream),
+                //            caption: promt
+                //        );
 
-                        fileStream.Close();
-                    }
+                //        fileStream.Close();
+                //    }
 
-                }
+                //}
 
-                else if(update.Message.Chat.Username.ToString() == "@chepuxxaa")
+                if(update.Message.Chat.Username.ToString() == "@chepuxxaa")
                     SendMessage(MessageType.Bot, botClient, update, "Соси");
 
                 else
