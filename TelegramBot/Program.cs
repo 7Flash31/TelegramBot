@@ -18,6 +18,23 @@ internal class Program
 
     static void Main(string[] args)
     {
+        string basePath = "./"; 
+
+        logPath = Path.Combine(basePath, logPath);
+        imagePath = Path.Combine(basePath, imagePath);
+
+        EnsureDirectoriesExist();
+
+        Console.ForegroundColor = ConsoleColor.White;
+        var client = new TelegramBotClient("6791814675:AAFdzNpWAJFB7EXxh0gVmmrp_89TPn3EHKQ");
+
+        client.StartReceiving(Update, Error);
+        var me = client.GetMeAsync();
+        Console.ReadLine();
+    }
+
+    static void EnsureDirectoriesExist()
+    {
         string logDirectory = Path.GetDirectoryName(logPath);
         if(!Directory.Exists(logDirectory))
         {
@@ -28,13 +45,6 @@ internal class Program
         {
             Directory.CreateDirectory(imagePath);
         }
-
-        Console.ForegroundColor = ConsoleColor.White;
-        var client = new TelegramBotClient("6791814675:AAFdzNpWAJFB7EXxh0gVmmrp_89TPn3EHKQ");
-
-        client.StartReceiving(Update, Error);
-        var me = client.GetMeAsync();
-        Console.ReadLine();
     }
 
     private async static Task Update(ITelegramBotClient botClient, Update update, CancellationToken token)
