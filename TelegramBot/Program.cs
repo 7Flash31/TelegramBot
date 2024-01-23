@@ -1,13 +1,14 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using static System.Net.Mime.MediaTypeNames;
 
 internal class Program
 {
     private static string fileName = DateTime.Now.ToString().Replace("/", ".").Replace(":", ".");
-    private static string logPath = $"C:\\Users\\arter\\Desktop\\telegram-bot\\Logs\\{fileName}.txt";
+    private static string logPath = $"telegram-bot\\Logs\\{fileName}.txt";
+    public static string imagePath = $"telegram-bot\\Image\\";
 
     enum MessageType
     {
@@ -17,6 +18,17 @@ internal class Program
 
     static void Main(string[] args)
     {
+        string logDirectory = Path.GetDirectoryName(logPath);
+        if(!Directory.Exists(logDirectory))
+        {
+            Directory.CreateDirectory(logDirectory);
+        }
+
+        if(!Directory.Exists(imagePath))
+        {
+            Directory.CreateDirectory(imagePath);
+        }
+
         Console.ForegroundColor = ConsoleColor.White;
         var client = new TelegramBotClient("6791814675:AAFdzNpWAJFB7EXxh0gVmmrp_89TPn3EHKQ");
 
@@ -28,6 +40,7 @@ internal class Program
     private async static Task Update(ITelegramBotClient botClient, Update update, CancellationToken token)
     {
         string answer = "Error";
+
         var message = update.Message;
 
         if(message?.Text != null)
@@ -41,6 +54,7 @@ internal class Program
                     SendMessage(MessageType.Bot, botClient, update, "Рисую");
 
                     string promt = ProcessCommand(message.Text, false);
+
                     await Kandinsky.GetGenerateImage(promt);
 
                     WriteLog($"Image ({promt}) saved to {Kandinsky.GetFilePath()}");
@@ -58,6 +72,9 @@ internal class Program
 
                 }
 
+                else if(update.Message.Chat.Username.ToString() == "@chepuxxaa")
+                    SendMessage(MessageType.Bot, botClient, update, "Соси");
+
                 else
                     SendMessage(MessageType.Gpt, botClient, update, message.Text);
             }
@@ -72,16 +89,34 @@ internal class Program
         }
     }
 
-    private static Task Error(ITelegramBotClient client, Exception exception, CancellationToken token)
+    private static async Task Error(ITelegramBotClient client, Exception exception, CancellationToken token)
     {
         Console.WriteLine($"Telegram: {exception.Message}");
         WriteLog($"Telegram: {exception.Message}");
 
-        var fileName = Assembly.GetExecutingAssembly().Location;
-        System.Diagnostics.Process.Start(fileName);
-        Environment.Exit(0); 
+        var executablePath = Assembly.GetExecutingAssembly().Location;
 
-        return Task.CompletedTask;
+        try
+        {
+            // Запуск исполняемого файла, а не .dll файла
+            var processStartInfo = new ProcessStartInfo
+            {
+                FileName = executablePath,
+                UseShellExecute = true
+            };
+
+            Process.Start(processStartInfo);
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine($"Error restarting application: {ex.Message}");
+            WriteLog($"Error restarting application: {ex.Message}");
+        }
+
+        // Завершение текущего процесса
+        Environment.Exit(0);
+
+        await Task.CompletedTask;
     }
 
     private async static void WriteLog(string text)
@@ -114,10 +149,7 @@ internal class Program
 
     private async static void SendMessage(MessageType type, ITelegramBotClient botClient, Update update, string textBot)
     {
-        //string answer = await YandexGPT.SendCompletionRequest(update.Message.Text);
-
         string logText;
-
 
         if(type == MessageType.Bot)
         {

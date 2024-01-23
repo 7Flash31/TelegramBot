@@ -89,7 +89,7 @@ class Kandinsky
             }
 
             attempts--;
-            await Task.Delay(delayInSeconds * 1000);
+            await Task.Delay(delayInSeconds * 2000); 
         }
 
         Console.WriteLine("Image retrieval failed or timed out.");
@@ -105,11 +105,12 @@ class Kandinsky
 
         if(imageBytes != null)
         {
-            fileIndex = GetFileIndex("C:\\Users\\arter\\Desktop\\telegram-bot\\Image\\");
+            fileIndex = GetFileIndex(Program.imagePath);
             fileIndex++;
-            filePath = $"C:\\Users\\arter\\Desktop\\telegram-bot\\Image\\{fileIndex}.png";
+            filePath = $"{Program.imagePath}\\{fileIndex}.png";
             File.WriteAllBytes(filePath, imageBytes);
             Console.WriteLine($"Image ({promt}) saved to {filePath}");
+
         }
     }
 
