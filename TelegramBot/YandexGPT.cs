@@ -9,7 +9,7 @@ class YandexGPT
     {
         var prompt = new
         {
-            modelUri = "gpt://b1gt4nscm4mtcv853jvr/yandexgpt-lite",
+            modelUri = "gpt://ajeliaog7dm26ndujoe5/yandexgpt-lite",
             completionOptions = new
             {
                 stream = false,
@@ -23,7 +23,7 @@ class YandexGPT
         };
 
         var url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
-        var apiKey = "AQVNyn0pq-53tMTeBI7FQk1clrHQmz7e6nhBacY_";
+        var apiKey = "AQVN1ZKxA7bCNdvp4cX-ne2LjOO4tcvc4XaljJk_";
 
         using(var client = new HttpClient())
         {
