@@ -26,7 +26,7 @@ internal class Program
         EnsureDirectoriesExist();
 
         Console.ForegroundColor = ConsoleColor.White;
-        var client = new TelegramBotClient("6791814675:AAFdzNpWAJFB7EXxh0gVmmrp_89TPn3EHKQ");
+        var client = new TelegramBotClient("6791814675:AAFA9__aGx879v1y-1FtnZNr1LHgRU1i7sc");
 
         client.StartReceiving(Update, Error);
         var me = client.GetMeAsync();
