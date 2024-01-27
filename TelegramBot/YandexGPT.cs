@@ -9,7 +9,7 @@ class YandexGPT
     {
         var prompt = new
         {
-            modelUri = "gpt://b1gt4nscm4mtcv853jvr/yandexgpt-lite",
+            modelUri = "gpt://ajeliaog7dm26ndujoe5/yandexgpt-lite",
             completionOptions = new
             {
                 stream = false,
