@@ -1,163 +1,138 @@
-﻿using System.Diagnostics;
-using System.Reflection;
-using System.Text;
-using Telegram.Bot;
+﻿using Telegram.Bot;
+using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 internal class Program
 {
     private static string fileName = DateTime.Now.ToString().Replace("/", ".").Replace(":", ".");
-    private static string logPath = $"telegram-bot\\Logs\\{fileName}.txt";
+    public static string logPath = $"telegram-bot\\Logs\\{fileName}.txt";
     public static string imagePath = $"telegram-bot\\Image\\";
+    private static Dictionary<long, UserState> userStates = new Dictionary<long, UserState>();
 
-    enum MessageType
+    public static bool drawQuestion;
+    public static Update update;
+
+    private static async Task Main(string[] args)
     {
-        Bot, //Простое сообщение от бота
-        Gpt //Ответ от gpt
-    }
-
-    static void Main(string[] args)
-    {
-        string basePath = "./"; 
-
+        string basePath = "./";
         logPath = Path.Combine(basePath, logPath);
         imagePath = Path.Combine(basePath, imagePath);
 
-        EnsureDirectoriesExist();
+        Utilities.EnsureDirectoriesExist(logPath, imagePath);
 
         Console.ForegroundColor = ConsoleColor.White;
-        var client = new TelegramBotClient("6791814675:AAFdzNpWAJFB7EXxh0gVmmrp_89TPn3EHKQ");
+        var client = new TelegramBotClient("6791814675:AAFA9__aGx879v1y-1FtnZNr1LHgRU1i7sc");
 
-        client.StartReceiving(Update, Error);
-        var me = client.GetMeAsync();
-        Console.ReadLine();
+        ReceiverOptions receiverOptions = new ReceiverOptions
+        {
+            AllowedUpdates = new[] { UpdateType.Message },
+            ThrowPendingUpdates = true,
+        };
+
+        client.StartReceiving(Update, Error, receiverOptions);
+        await Task.Delay(Timeout.Infinite);
     }
 
-    static void EnsureDirectoriesExist()
+    private static async Task Update(ITelegramBotClient botClient, Update update, CancellationToken token)
     {
-        string logDirectory = Path.GetDirectoryName(logPath);
-        if(!Directory.Exists(logDirectory))
-        {
-            Directory.CreateDirectory(logDirectory);
-        }
-
-        if(!Directory.Exists(imagePath))
-        {
-            Directory.CreateDirectory(imagePath);
-        }
-    }
-
-    private async static Task Update(ITelegramBotClient botClient, Update update, CancellationToken token)
-    {
-        string answer = "Error";
-
-        var message = update.Message;
-
-        if(message?.Text != null)
-        {
-            var isSub = await botClient.GetChatMemberAsync("@WhizGPT", message.Chat.Id);
-
-            if (isSub.Status.ToString().Length >= 5)
-            {
-                //if(ProcessCommand(message.Text, true) == "Нарисуй")
-                //{
-                //    SendMessage(MessageType.Bot, botClient, update, "Рисую");
-
-                //    string promt = ProcessCommand(message.Text, false);
-
-                //    await Kandinsky.GetGenerateImage(promt);
-
-                //    WriteLog($"Image ({promt}) saved to {Kandinsky.GetFilePath()}");
-
-                //    using(var fileStream = new FileStream(Kandinsky.GetFilePath(), FileMode.Open, FileAccess.Read, FileShare.Read))
-                //    {
-                //        await botClient.SendPhotoAsync(
-                //            chatId: message.Chat.Id,
-                //            photo: InputFile.FromStream(fileStream),
-                //            caption: promt
-                //        );
-
-                //        fileStream.Close();
-                //    }
-
-                //}
-
-                if(update.Message.Chat.Username.ToString() == "@chepuxxaa")
-                    SendMessage(MessageType.Bot, botClient, update, "Соси");
-
-                else
-                    SendMessage(MessageType.Gpt, botClient, update, message.Text);
-            }
-
-            else
-            {
-                answer = "Вы не подписаны на канал @WhizGPT";
-                await botClient.SendTextMessageAsync(message.Chat.Id, answer);
-                await Console.Out.WriteLineAsync($"bot: {answer} | ответ для @{message.Chat.Username}");
-                return;
-            }
-        }
-    }
-
-    private static async Task Error(ITelegramBotClient client, Exception exception, CancellationToken token)
-    {
-        Console.WriteLine($"Telegram: {exception.Message}");
-        WriteLog($"Telegram: {exception.Message}");
-
-        var executablePath = Assembly.GetExecutingAssembly().Location;
-
         try
         {
-            // Запуск исполняемого файла, а не .dll файла
-            var processStartInfo = new ProcessStartInfo
-            {
-                FileName = executablePath,
-                UseShellExecute = true
-            };
+            var message = update.Message;
 
-            Process.Start(processStartInfo);
+            if(update.Type == UpdateType.Message)
+            {
+                var isSub = await botClient.GetChatMemberAsync("@WhizGPT", message.Chat.Id);
+                if(isSub.Status.ToString().Length >= 5)
+                {
+                    await ProcessMessage(botClient, update, message);
+                }
+                else
+                {
+                    await SendMessage(MessageType.Bot, botClient, update, "Вы не подписаны на @WhizGPT");
+                }
+            }
         }
         catch(Exception ex)
         {
-            Console.WriteLine($"Error restarting application: {ex.Message}");
-            WriteLog($"Error restarting application: {ex.Message}");
-        }
-
-        // Завершение текущего процесса
-        Environment.Exit(0);
-
-        await Task.CompletedTask;
-    }
-
-    private async static void WriteLog(string text)
-    {
-        using(FileStream fstream = new FileStream(logPath, FileMode.Append))
-        {
-            byte[] buffer = Encoding.Default.GetBytes(text);
-            await fstream.WriteAsync(buffer, 0, buffer.Length);
+            Console.WriteLine($"Error {ex}");
+            Utilities.WriteLog(ex.ToString());
         }
     }
 
-    private static string ProcessCommand(string command, bool first)
+    private static async Task ProcessMessage(ITelegramBotClient botClient, Update update, Message message)
     {
-        string[] parts = command.Split(':');
+        string drawPrompt;
 
-        if(parts.Length >= 2)
+        UserState userState;
+        if(!userStates.TryGetValue(message.Chat.Id, out userState))
         {
-            string firstWord = parts[0].Trim();
-            string afterColon = parts[1].Trim();
+            userState = new UserState();
+            userStates[message.Chat.Id] = userState;
+        }
 
-            if(first)
-                return firstWord;
+        if(userState.DrawQuestion)
+        {
+            drawPrompt = message.Text;
+            await SendMessage(MessageType.Bot, botClient, update, $"Рисую: {drawPrompt}");
 
-            else
-                return afterColon;
+            await GenerationImage(drawPrompt, botClient, update);
+
+            userState.DrawQuestion = false;
         }
         else
-            return "Некорректный формат команды. Убедитесь, что есть двоеточие.";
+        {
+            if(message.Text.StartsWith("/"))
+            {
+                await ProcessCommand(botClient, update, message.Text.Substring(1), userState);
+            }
+            else if(message.Text == "Нарисуй")
+            {
+                userState.DrawQuestion = true;
+                await SendMessage(MessageType.Bot, botClient, update, "Что нарисовать?");
+            }
+            else
+            {
+                await SendMessage(MessageType.Gpt, botClient, update, message.Text);
+            }
+        }
     }
 
-    private async static void SendMessage(MessageType type, ITelegramBotClient botClient, Update update, string textBot)
+    private static async Task ProcessCommand(ITelegramBotClient botClient, Update update, string command, UserState userState)
+    {
+        switch(command)
+        {
+            case "reply":
+                var replyKeyboard = new ReplyKeyboardMarkup(new List<KeyboardButton[]>() {
+                new KeyboardButton[]
+                {
+                    new KeyboardButton("Нарисуй"),
+                },})
+                {
+                    ResizeKeyboard = true,
+                };
+                await botClient.SendTextMessageAsync(update.Message.Chat.Id, "Готово", replyMarkup: replyKeyboard);
+                break;
+
+            case "draw":
+                userState.DrawQuestion = true;
+                await SendMessage(MessageType.Bot, botClient, update, "Что нарисовать?");
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    private static Task Error(ITelegramBotClient client, Exception exception, CancellationToken token)
+    {
+        Console.WriteLine($"Telegram: {exception.Message}");
+        Utilities.WriteLog($"Telegram: {exception.Message}");
+        return Task.CompletedTask;
+    }
+
+    private async static Task SendMessage(MessageType type, ITelegramBotClient botClient, Update update, string textBot)
     {
         string logText;
 
@@ -170,7 +145,7 @@ internal class Program
             Console.WriteLine($"{update.Message.Text}");
 
             logText = $"{Environment.NewLine}{DateTime.Now} @{update.Message.Chat.Username}: {update.Message.Text}";
-            WriteLog(logText);
+            Utilities.WriteLog(logText);
 
             //Bot
             Console.ForegroundColor = ConsoleColor.Yellow;
@@ -178,10 +153,10 @@ internal class Program
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine($"{textBot} | Ответ для {update.Message.Chat.Username}");
 
-            await botClient.SendTextMessageAsync(update.Message.Chat.Id, textBot);
+            await botClient.SendTextMessageAsync(update.Message.Chat.Id, textBot, replyToMessageId: update.Message.MessageId);
 
             logText = $"{Environment.NewLine}{DateTime.Now} Bot: {textBot} | Ответ для @{update.Message.Chat.Username}";
-            WriteLog(logText);
+            Utilities.WriteLog(logText);
         }
 
         if(type == MessageType.Gpt)
@@ -195,7 +170,7 @@ internal class Program
             Console.WriteLine($"{update.Message.Text}");
 
             logText = $"{Environment.NewLine}{DateTime.Now} @{update.Message.Chat.Username}: {update.Message.Text}";
-            WriteLog(logText);
+            Utilities.WriteLog(logText);
 
             //Bot
             Console.ForegroundColor = ConsoleColor.Cyan;
@@ -203,10 +178,52 @@ internal class Program
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine($"{answer} | Ответ для @{update.Message.Chat.Username}");
 
-            await botClient.SendTextMessageAsync(update.Message.Chat.Id, answer);
+            await botClient.SendTextMessageAsync(update.Message.Chat.Id, answer, replyToMessageId: update.Message.MessageId);
 
             logText = $"{Environment.NewLine}{DateTime.Now} Bot: {answer} | Ответ для @{update.Message.Chat.Username}";
-            WriteLog(logText);
+            Utilities.WriteLog(logText);
+        }
+    }
+
+    private async static Task GenerationImage(string promt, ITelegramBotClient botClient, Update update)
+    {
+        try
+        {
+            await Kandinsky.GetGenerateImage(promt); // Асинхронный вызов
+
+            Utilities.WriteLog($"Image ({promt}) saved to {Kandinsky.GetFilePath()}");
+
+            using(var fileStream = new FileStream(Kandinsky.GetFilePath(), FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                await botClient.SendPhotoAsync(
+                    chatId: update.Message.Chat.Id,
+                    photo: InputFile.FromStream(fileStream),
+                    caption: promt
+                ); // Асинхронный вызов
+            }
+        }
+        catch(Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write($"{DateTime.Now} Error: ");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine($"{ex}");
+
+            await SendMessage(MessageType.Bot, botClient, update, "Error"); // Асинхронный вызов
         }
     }
 }
+
+
+enum MessageType
+{
+    Bot, //Простое сообщение от бота
+    Gpt //Ответ от gpt
+}
+
+class UserState
+{
+    public bool DrawQuestion { get; set; }
+    // Другие свойства, если необходимо
+}
+

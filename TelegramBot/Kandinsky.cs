@@ -5,11 +5,11 @@ using System.Text;
 class Kandinsky
 {
     private const string ApiUrl = "https://api-key.fusionbrain.ai/";
-    private const string ApiKey = "B6D4FF68696AA68B9209AE777FFDE539";
-    private const string SecretKey = "FDA28CD77E172C032D736FD68E110068";
+    private const string ApiKey = "04C30D70EBDD65EBD585D01F462A4CCB";
+    private const string SecretKey = "0D3B2619FDD0AAB80915546F6B6CCFD9";
 
     private static int fileIndex;
-    private static string filePath;
+    private static string? filePath;
 
     private readonly HttpClient client;
 
@@ -89,7 +89,7 @@ class Kandinsky
             }
 
             attempts--;
-            await Task.Delay(delayInSeconds * 2000); 
+            await Task.Delay(delayInSeconds * 2000);
         }
 
         Console.WriteLine("Image retrieval failed or timed out.");

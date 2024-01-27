@@ -23,7 +23,7 @@ class YandexGPT
         };
 
         var url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
-        var apiKey = "AQVNyn0pq-53tMTeBI7FQk1clrHQmz7e6nhBacY_";
+        var apiKey = "AQVNzo4gWyPFQj-iipUvvndfCShl0uBbmUVpLxRv";
 
         using(var client = new HttpClient())
         {
@@ -48,7 +48,7 @@ class YandexGPT
             else
             {
                 if(response.StatusCode.ToString() == "TooManyRequests")
-                    return "Подождите";
+                    return "Много одновременных запросов";
                 else
                     return $"Error: {response.StatusCode}";
             }
